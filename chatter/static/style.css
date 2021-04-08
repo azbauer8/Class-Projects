@@ -1,0 +1,68 @@
+@import url('https://fonts.googleapis.com/css2?family=Ubuntu&display=swap');
+
+body            { font-family: 'Ubuntu', monospace; background: #2e3440; color: #eceff4}
+a, h1, h2       { color: #eceff4; }
+h1, h2          { margin: 0; font-weight: 600; letter-spacing: 0rem;}
+h2              { font-size: 1.2em; }
+
+ul              { list-style-type: none; padding-left: 0px;}
+hr              { color: #a8bbce }
+input           {
+                    border: 4px solid #434c5e; 
+                    border-radius: 5px;
+                    padding: 10px;
+                    background: #3b4152;
+                    margin: 0 0 0.5em 0;
+                    color: #eceff4;
+                    font-size: 0.9em;
+                    font-family : inherit;
+                }
+
+.button         { font-family : inherit; }
+
+.page           { margin: 2em auto; width: 40em; border: 10px solid #434c5e;
+                  padding: 0.8em; background: #4c566a; border-radius: 5px; }
+.metanav        { text-align: right; font-size: 1em; padding: 0.7em; padding-bottom: 1.5em;
+                  margin: -15px -13px 13px -13px; background: #3b4152; border-radius: 5px 5px 0px 0px; }
+.flash          { background: #5e81ac; padding: 0.5em;
+                border-radius: 5px; margin-bottom: 0.5em; display: inline-block; }
+.flashError     { background: #bf616a; padding: 0.5em;
+                border-radius: 5px; margin-bottom: 0.5em; display: inline-block; }             
+.error          { background: #81a1c1; padding: 0.5em; }
+
+a:link          { text-decoration: none; }
+a:visited       { text-decoration: none; }
+a:hover         { text-decoration: underline; }
+a:active        { text-decoration: underline; }
+
+.delRoom        { background-color:#bf616a; color: #eceff4; padding: 0.1em 0.4em 0.2em 0.4em; 
+                  border-radius: 5px; font-size: 0.9em; float:right; position: relative; margin-right: 0.4em; }
+.delRoom:hover  { text-decoration: none; }
+.delRoom:active { text-decoration: none; }
+
+.joinRoom       { background-color:#5e81ac; color: #eceff4; padding: 0.1em 0.4em 0.2em 0.4em; 
+                  border-radius: 5px; font-size: 0.9em; float:right; position: relative; margin-right: 0.5em;}
+.joinRoom:hover { text-decoration: none; }
+.joinRoom:active{ text-decoration: none; }
+
+.roomItem       { background: #3b4152; padding: 0.8em; border-radius: 5px; margin-bottom: 0.5em; border: 4px solid #434c5e; border-radius: 5px;}
+.roomName       { color: #8fbcbb; background: #3b4152; padding: 0.3em; border-radius: 5px;  display: inline-block;}
+.roomTitle      { font-size: x-large; }
+
+.msgSender       { color: #8fbcbb; }
+
+#logoImg        { width: 50px; height: 50px; float: left;}
+#titleText      { float:left; position: relative; color: #8fbcbb; font-size: 3em;}
+#welcomeUser    { float:right; position: relative; color: #eceff4; font-size: 1em; margin-top: 1em;}
+
+#loginBtn       { background-color:#5e81ac; color: #eceff4; padding: 0.2em 0.5em 0.2em 0.5em; border-radius: 5px; font-size: 0.9em; visibility: hidden; }
+#logoutBtn      { background-color:#bf616a; color: #eceff4; padding: 0.2em 0.5em 0.2em 0.5em; border-radius: 5px; font-size: 0.9em; }
+#loginBtn:hover { text-decoration: none; }
+#loginBtn:active { text-decoration: none; }
+#logoutBtn:hover { text-decoration: none; }
+#logoutBtn:active { text-decoration: none; }
+#leaveRoom      { background-color:#bf616a; color: #eceff4; padding: 0.2em 0.5em 0.2em 0.5em; 
+                  border-radius: 5px; font-size: 0.9em; float:right; position: relative;}
+#leaveRoom:hover { text-decoration: none; }
+#leaveRoom:active { text-decoration: none; }
+

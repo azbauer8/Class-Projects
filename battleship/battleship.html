@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Battleship</title>
+</head>
+<style>
+    table {
+        table-layout: fixed ;
+        width: 40% ;
+        empty-cells: show;
+    }
+    td {
+        width: 25% ;
+        height: 25% ;
+    }
+    #enemBoard td:hover {
+        background-color: #cccccc;
+    }
+    .hitcell{
+        background-color: rgb(179, 69, 69);
+    }
+    .misscell{
+        background-color: rgb(255,250,250);
+    }
+    .normcell{
+        background-color: rgb(135,206,250);
+    }
+    .labelcell{
+        background-color: rgb(235, 189, 52);
+    }
+</style>
+<body>
+        <div id="gameDiv">
+        <p id="welcomeP1">PLAYER ONE</p>
+        <p id="introInstructions">Enter your name and ship positions in the respective boxes below, then click OK</p>
+        <input type="text" id="p1Name" size="25" placeholder="Name"/>
+        <input type="text" id="p1ShipPos" size="25" placeholder="Ship Positions"/><br><br>
+        <input type="button" id="p1Ready" value="OK"/>
+        </div>
+
+    <script>
+        // creates matrices to hold coordinates for both players ships
+        var p1Grid = new Array(10);
+        for (let col = 0; col < 10; col++) {
+            p1Grid[col] = new Array(10);
+            for (let row = 0; row < 10; row++) {
+                p1Grid[col][row] = "-";
+            }
+        }
+        var p2Grid = new Array(10);
+        for (let col = 0; col < 10; col++) {
+            p2Grid[col] = new Array(10);
+            for (let row = 0; row < 10; row++) {
+                p2Grid[col][row] = "-";
+            }
+        }
+        // other global variables
+        var p1Name;
+        var p2Name;
+        // score decrements for each ship hit. game ends when either reaches 0
+        var p1Score = 24;
+        var p2Score = 24;
+        // keeps track of when each player's ship is destroyed
+        var p1Ahp = 5;
+        var p1Bhp = 4;
+        var p1Shp = 3;
+        var p2Ahp = 5;
+        var p2Bhp = 4;
+        var p2Shp = 3;
+        // bool used in wait function to check when a player has made a move
+        var moveMade = false;
+        var p1TurnDone = false;
+        var p2TurnDone = false;
+        // used to easily tell who won at the end
+        var winnerName;
+        var winnerScore;
+
+        // adds onclick event to p1 OK button
+        document.getElementById("p1Ready").addEventListener("click", p1Initialize)
+
+        // saves player name and parses ship positions
+        function p1Initialize(){
+            p1Name = document.getElementById("p1Name").value;
+            var p1PositionsString = document.getElementById("p1ShipPos").value;
+
+            let regexp = /([ABSabs])(?:\:|\()([A-Ja-j]\d+)-([A-Ja-j]\d+)(?:\);|;)*/g;
+            p1PositionsString.replace(/\s/g, "");
+
+            var parseP1Position = [...p1PositionsString.matchAll(regexp)];
+
+            // shows error on screen if invalid syntax for ship positions
+            // must enter valid syntax to continue to player two
+            if(parseP1Position.length == 0){
+                //console.log("Invalid Syntax for Ship Positions");
+                let tryToRemoveError = document.getElementById("invalidShipError");
+                if(tryToRemoveError == null){
+                    let invalidShip = document.createElement("p");
+                    let invalidShipText = document.createTextNode("Invalid Syntax for Ship Positions");
+                    invalidShip.appendChild(invalidShipText);
+                    invalidShip.id = "invalidShipError";
+                    document.getElementById("gameDiv").appendChild(invalidShip);
+                    document.getElementById("invalidShipError").setAttribute("style", "color:red");
+                }
+            }
+            else{
+                // verifies that the positions entered are valid
+                if(verifyShipPos(parseP1Position, p1Grid)){
+                    //console.log(p1Grid);
+                    //console.log(parseP1Position[0]);
+                    //console.log(parseP1Position[1]);
+                    //console.log(parseP1Position[2]);
+
+
+                    // removes error message if displayed
+                    let tryToRemoveError = document.getElementById("invalidShipError");
+                    if(tryToRemoveError != null){
+                        tryToRemoveError.remove();
+                    }
+
+                    // changes all elements to be for p2 now
+                    document.getElementById("welcomeP1").setAttribute("id", "welcomeP2");
+                    document.getElementById("welcomeP2").innerHTML = "PLAYER TWO";
+                    document.getElementById("p1Name").setAttribute("id", "p2Name");
+                    document.getElementById("p2Name").value = "";
+                    document.getElementById("p1ShipPos").setAttribute("id", "p2ShipPos");
+                    document.getElementById("p2ShipPos").value = "";
+                    document.getElementById("p1Ready").setAttribute("id", "p2Ready");
+
+                    // changes event listener for OK button so it moves on to p2
+                    document.getElementById("p2Ready").removeEventListener("click", p1Initialize);
+                    document.getElementById("p2Ready").addEventListener("click", p2Initialize);
+                }
+                else{
+                    //console.log("Invalid Syntax for Ship Positions. Reload page to Try Again");
+                    let tryToRemoveError = document.getElementById("invalidShipError");
+                    if(tryToRemoveError == null){
+                        let invalidShip = document.createElement("p");
+                        let invalidShipText = document.createTextNode("Invalid Syntax for Ship Positions. Reload page to try again.");
+                        invalidShip.appendChild(invalidShipText);
+                        invalidShip.id = "invalidShipError";
+                        document.getElementById("gameDiv").appendChild(invalidShip);
+                        document.getElementById("invalidShipError").setAttribute("style", "color:red");
+                    }
+                }
+            }
+        }
+
+        // mostly the same as p1 initialization
+        function p2Initialize(){
+            p2Name = document.getElementById("p2Name").value;
+            var p2PositionsString = document.getElementById("p2ShipPos").value;
+
+            let regexp = /([ABSabs])(?:\:|\()([A-Za-z]\d)-([A-Za-z]\d)(?:\);|;)*/g;
+            p2PositionsString.replace(/\s/g, "");
+
+            var parseP2Position = [...p2PositionsString.matchAll(regexp)];            
+
+            if(parseP2Position.length == 0){
+                //console.log("Invalid Syntax for Ship Positions");
+                let tryToRemoveError = document.getElementById("invalidShipError");
+                if(tryToRemoveError == null){
+                    let invalidShip = document.createElement("p");
+                    let invalidShipText = document.createTextNode("Invalid Syntax for Ship Positions");
+                    invalidShip.appendChild(invalidShipText);
+                    invalidShip.id = "invalidShipError";
+                    document.getElementById("gameDiv").appendChild(invalidShip);
+                    document.getElementById("invalidShipError").setAttribute("style", "color:red");
+
+                }
+            }
+            else{
+                // verifies that the positions entered are valid
+                if(verifyShipPos(parseP2Position, p2Grid)){
+                    //console.log(p2Grid);
+
+                    // removes error message if displayed
+                    let tryToRemoveError = document.getElementById("invalidShipError");
+                    if(tryToRemoveError != null){
+                        tryToRemoveError.remove();
+                    }
+                    
+                    // goes to game start, which loops between player turns until the game ends
+                    playGame();
+
+                }
+                else{
+                    //console.log("Invalid Syntax for Ship Positions. Reload page to Try Again");
+                    let tryToRemoveError = document.getElementById("invalidShipError");
+                    if(tryToRemoveError == null){
+                        let invalidShip = document.createElement("p");
+                        let invalidShipText = document.createTextNode("Invalid Syntax for Ship Positions. Reload page to try again.");
+                        invalidShip.appendChild(invalidShipText);
+                        invalidShip.id = "invalidShipError";
+                        document.getElementById("gameDiv").appendChild(invalidShip);
+                        document.getElementById("invalidShipError").setAttribute("style", "color:red");
+                    }
+                }
+            }
+        }
+        // takes in a matrix of ship positions and makes sure they're all in bound and none collide
+        function verifyShipPos(shipPositions, grid){
+            let ship1 = shipPositions[0];
+            let ship2 = shipPositions[1];
+            let ship3 = shipPositions[2];
+
+            // converts coordinates to only integers (ex. A1=1,1)
+            ship1 = coordsToInt(ship1);
+            ship2 = coordsToInt(ship2);
+            ship3 = coordsToInt(ship3);
+
+            // makes sure there aren't any repeated ship types
+            if(ship1[1] == ship2[1] || ship2[1] == ship3[1] || ship1[1] == ship3[1]){
+                return false;
+            }
+
+            // verifies each ship and adds it to the matrix
+            let checkShip1 = checkShip(ship1, grid);
+            let checkShip2 = checkShip(ship2, grid);
+            let checkShip3 = checkShip(ship3, grid);
+
+            if(checkShip1 && checkShip2 && checkShip3){
+                return true;
+            }
+            return false;
+        }
+
+        function checkShip(ship, grid){
+            // determines length of ship
+            // checks if vertical or horizontal positioning
+            let shipSize;
+            let shipOrient;
+            if(ship[2][0] == ship[3][0]){
+                shipOrient = "vert";
+                if(ship[3][1] == 0 || ship[2][1] == 0){
+                    shipSize = Math.abs(ship[3][1] - ship[2][1] + 1);
+                }
+                else{
+                    shipSize = Math.abs(ship[3][1] - ship[2][1] + 1);
+                }
+            }
+            else if(ship[2][1] == ship[3][1]){
+                shipOrient = "horiz";
+                if(ship[3][0] == 0 || ship[2][0] == 0){
+                    shipSize = Math.abs(ship[3][0] - ship[2][0] + 1);
+                }
+                else{
+                    shipSize = Math.abs(ship[3][0] - ship[2][0] + 1);
+                }
+            }
+            else{
+                // otherwise, must be a diagonal, which is not accepted
+                return false;
+            }
+            // makes sure all coords are inbounds
+            if(ship[2][0] <= 9 && ship[2][0] >= 0 && ship[2][1] <= 9 && ship[2][1] >= 0 && ship[3][0] <= 9 && ship[3][0] >= 0 && ship[3][1] <= 9 && ship[3][1] >= 0){
+                // then makes sure it is the right length based on the type of ship
+                if(ship[1] == "A"){
+                    if(shipSize != 5){
+                        return false;
+                    }
+                }
+                else if(ship[1] == "B"){
+                    if(shipSize != 4){
+                        return false;
+                    }
+                }
+                else{
+                    if(shipSize != 3){
+                        return false;
+                    }
+                }
+                // at this point, we can put the coordinates in the matrix and check for collisions
+                // sets value where ship exists to 1.
+                if(shipOrient == "vert"){
+                    let start = parseInt(Math.min(ship[2][1], ship[3][1]));
+                    for(let i = start; i < start + shipSize; i++){
+                        // if ship already exists in coord, return false
+                        if(grid[ship[2][0]][i] != "-"){
+                            return false;
+                        }
+                        // indicates submarine
+                        if(shipSize == 3){
+                            grid[ship[2][0]][i] = "S";
+                        }
+                        // indicates battleship
+                        else if(shipSize == 4){
+                            grid[ship[2][0]][i] = "B";
+                        }
+                        // indicates aircraft
+                        else if(shipSize == 5){
+                            grid[ship[2][0]][i] = "A";
+                        }
+                    }
+                }
+                else{
+                    let start = parseInt(Math.min(ship[2][0], ship[3][0]));
+                    for(let i = start; i < start + shipSize; i++){
+                        // if ship already exists in coord, return false
+                        if(grid[i][ship[2][1]] == 1){
+                            return false;
+                        }
+                        // indicates submarine
+                        if(shipSize == 3){
+                            grid[i][ship[2][1]] = "S";
+                        }
+                        else if(shipSize == 4){
+                            grid[i][ship[2][1]] = "B";
+                        }
+                        else if(shipSize == 5){
+                            grid[i][ship[2][1]] = "A";
+                        }
+
+                    }
+                }
+                return true;
+            }
+            return false;
+        }
+
+        function coordsToInt(coordsArray){
+            // coordinate is in format ex. A1
+            // will replace with array ex. 1,1
+            let pos1 = coordsArray[2];
+            pos1 = pos1.toUpperCase();
+            let xCoord1 = pos1.charCodeAt(0) - 64;
+            let yCoord1 = parseInt(pos1.substring(1));
+            coordsArray[2] = [yCoord1 - 1, xCoord1 - 1];
+
+            let pos2 = coordsArray[3];
+            pos2 = pos2.toUpperCase();
+            let xCoord2 = pos2.charCodeAt(0) - 64;
+            let yCoord2 = parseInt(pos2.substring(1));
+            coordsArray[3] = [yCoord2 - 1, xCoord2 - 1];
+
+            return coordsArray;
+        }
+
+        async function playGame(){
+            // first, wipes the screen of any previous elements
+            let container = document.querySelector('#gameDiv');
+            while (container.firstChild) {
+                container.removeChild(container.firstChild);
+            }
+            // loops indefinitely between p1 and p2 until someone loses
+            while(p1Score != 0 && p2Score != 0){
+                playerTurn("p1");
+                await waitUntil(() => p1TurnDone);
+                // skips p2 turn if p1 already won
+                if(p2Score == 0){
+                    break;
+                }
+                playerTurn("p2");
+                await waitUntil(() => p2TurnDone);
+                // no conditional needed after p2 turn,
+                // would break from while loop anyways
+            }
+            if(p1Score == 0){
+                alert("P2 has won!");
+                winnerName = p2Name;
+                winnerScore = p2Score;
+            }
+            else{
+                alert("P1 has won!");
+                winnerName = p1Name;
+                winnerScore = p1Score;
+            }
+
+            // goes to end game screen, which adds the winner's name and score to
+            // local storage leaderboard and displays top scores across games in a table
+            endGame();
+        }
+
+        async function playerTurn(player){
+            // wipes any previous elements from the screen
+            let container = document.querySelector('#gameDiv');
+            while (container.firstChild) {
+                container.removeChild(container.firstChild);
+            }
+            // adds alert for player to start their turn
+            if(player == "p1"){
+                alert("Click OK to begin " + p1Name + "'s turn");
+            }
+            else{
+                alert("Click OK to begin " + p2Name + "'s turn");
+            }
+            moveMade = false;
+            let letterLabelRow;
+            // load game boards (checks whose turn it is to know which board is which)
+            // p1's turn - shows board1 to on top, board2 on bot
+            if(player == "p1"){
+                p1TurnDone = false;
+
+                // indicates whose turn it is
+                let p2TurnMsg = document.createElement("h2");
+                let p2TurnMsgText = document.createTextNode("Player 1's Turn:");
+                p2TurnMsg.appendChild(p2TurnMsgText);
+                p2TurnMsg.id = "p2TurnMsg";
+                document.getElementById("gameDiv").appendChild(p2TurnMsg);
+
+                // label for enemy board
+                let enemBoardMsg = document.createElement("p");
+                let enemBoardMsgText = document.createTextNode("Opponent's Board: " + p2Name);
+                enemBoardMsg.appendChild(enemBoardMsgText);
+                enemBoardMsg.id = "enemBoardMsg";
+                document.getElementById("gameDiv").appendChild(enemBoardMsg);
+
+                // fills table with matrix data for enemy board
+                var enemBoard = document.createElement('table');
+                var enemBoardBody = document.createElement('tbody');
+
+                p2Grid.forEach(function(rowData) {
+                    var row = document.createElement('tr');
+
+                    rowData.forEach(function(cellData) {
+                        var cell = document.createElement('td');
+                        // replaces "-" (indicating a blank coordinate)
+                        // with &nbsp; for evenly spaced blank cells
+                        if(cellData == "-"){
+                            cell.appendChild(document.createTextNode(String.fromCharCode(160)));
+                            cell.className = "normcell";
+                        }
+                        // indicates a miss with an empty white cell
+                        else if(cellData == "M"){
+                            cell.appendChild(document.createTextNode(String.fromCharCode(160)));
+                            cell.className = "misscell";
+                        }
+                        // indicates a hit with a blank red cell
+                        else if(cellData.substring(1) == "h"){
+                            cell.appendChild(document.createTextNode(String.fromCharCode(160)));
+                            cell.className = "hitcell";
+                        }
+                        // shows normal untouched ship cell
+                        else{
+                            cell.appendChild(document.createTextNode(String.fromCharCode(160)));
+                            cell.className = "normcell";
+                        }
+                        cell.style = "text-align:center";
+                        // adds an onclick function for every enemy board cell
+                        cell.onclick = function() {
+                            // gets row and column clicked from cell
+                            let rIndex = parseInt(cell.parentElement.rowIndex);
+                            let cIndex = parseInt(cell.cellIndex);
+                            //console.log("Row: " + rIndex + " Cell: " + cIndex);
+                            // checks if it's a hit (and that it hasn't already been hit)
+                            if(p2Grid[rIndex][cIndex] != "-" && p2Grid[rIndex][cIndex] != "M" && p2Grid[rIndex][cIndex].substring(1) != "h"){
+                                cell.style.backgroundColor = 'rgb(178,34,34)';
+                                // indicates in the matrix the cell has been hit
+                                p2Grid[rIndex][cIndex] = p2Grid[rIndex][cIndex].concat("h");
+                                // decrements enemy player score
+                                p2Score = p2Score - 2;
+                                // checks type of ship hit and decrements its hp
+                                if(p2Grid[rIndex][cIndex].substring(0, 1) == "A"){
+                                    p2Ahp = p2Ahp - 1;
+                                }
+                                else if(p2Grid[rIndex][cIndex].substring(0, 1) == "B"){
+                                    p2Bhp = p2Bhp - 1;
+                                }
+                                else{
+                                    p2Shp = p2Shp - 1;
+                                }
+
+                                // then checks if any ships have been totally destoyed
+                                // and displays a message if any have
+                                if(p2Ahp == 0){
+                                    alert("You've destroyed their Aircraft!");
+                                    // sets to -1 to indicate it's already been destroyed
+                                    p2Ahp = -1;
+                                }
+                                else if(p2Bhp == 0){
+                                    alert("You've destroyed their Battleship!");
+                                    // sets to -1 to indicate it's already been destroyed
+                                    p2Bhp = -1;
+                                }
+                                else if(p2Shp == 0){
+                                    alert("You've destroyed their Submarine!");
+                                    // sets to -1 to indicate it's already been destroyed
+                                    p2Shp = -1;
+                                }
+                                // if no ships have been destroyed, show just a hit message
+                                else{
+                                    alert("It's a hit!");
+                                }
+                            }
+                            else if(p1Grid[rIndex][cIndex].substring(1) == "h"){
+                                alert("You've already hit this spot.");
+                            }
+                            else if(p1Grid[rIndex][cIndex] == "M"){
+                                alert("You've already tried this spot and it was a miss.");
+                            }
+                            else{
+                                // indicates a miss
+                                cell.style.backgroundColor = 'rgb(255,250,250)';
+                                p2Grid[rIndex][cIndex] = "M";
+
+                                // display a message telling the player they missed
+                                alert("Sorry, you missed.");
+                            }
+                            moveMade = true;
+                            p1TurnDone = true;
+                        };
+                        row.appendChild(cell);
+                    });
+
+                    enemBoardBody.appendChild(row);
+                });
+                enemBoard.appendChild(enemBoardBody);
+                enemBoard.border = "3";
+
+                // inserts column letter labels at bottom
+                letterLabelRow = enemBoard.insertRow(enemBoard.rows.length);
+                for (i = 10; i > 0; i--) {
+                    let letterLabel = letterLabelRow.insertCell(0);
+                    letterLabel.innerHTML = String.fromCharCode(i+64);
+                    letterLabel.style = "text-align:center; font-weight: bold";
+                    letterLabel.className = "labelcell";
+                } 
+
+                // inserts row number labels on right side
+                for (i = 0; i < 11; i++) {
+                    let currRow;
+                    let numLabel;
+                    if(i != 10){
+                        currRow = enemBoard.rows[i];
+                        numLabel = currRow.insertCell(currRow.cells.length);
+                        numLabel.innerHTML = i + 1;
+                        numLabel.style = "text-align:center; font-weight: bold";
+                        numLabel.className = "labelcell";
+                    }
+                    else{
+                        currRow = enemBoard.rows[i];
+                        numLabel = currRow.insertCell(currRow.cells.length);
+                        numLabel.innerHTML = String.fromCharCode(160);
+                        numLabel.style = "text-align:center; font-weight: bold";
+                        numLabel.className = "labelcell";
+                    }
+                }
+                enemBoard.id = "enemBoard";
+                document.getElementById("gameDiv").appendChild(enemBoard);
+
+                // label for friendly board
+                let ownBoardMsg = document.createElement("p");
+                let ownBoardMsgText = document.createTextNode("Your Board: " + p1Name);
+                ownBoardMsg.appendChild(ownBoardMsgText);
+                ownBoardMsg.id = "ownBoardMsg";
+                document.getElementById("gameDiv").appendChild(ownBoardMsg);
+
+                // fills table with matrix data for friendly board
+                var ownBoard = document.createElement('table');
+                var ownBoardBody = document.createElement('tbody');
+
+                p1Grid.forEach(function(rowData) {
+                    var row = document.createElement('tr');
+
+                    rowData.forEach(function(cellData) {
+                        var cell = document.createElement('td');
+                        // replaces "-" (indicating a blank coordinate)
+                        // with &nbsp; for evenly spaced blank cells
+                        if(cellData == "-"){
+                            cell.className = "normcell";
+                            cell.appendChild(document.createTextNode(String.fromCharCode(160)));
+                        }
+                        // indicates a miss with an empty white cell
+                        else if(cellData == "M"){
+                            cell.className = "misscell";
+                            cell.appendChild(document.createTextNode(String.fromCharCode(160)));
+                        }
+                        // indicates a hit with a red cell with the ship letter
+                        else if(cellData.substring(1) == "h"){
+                            cell.className = "hitcell";
+                            cell.appendChild(document.createTextNode(cellData.substring(0, 1)));
+                        }
+                        // shows normal untouched ship cell
+                        else{
+                            cell.className = "normcell";
+                            cell.appendChild(document.createTextNode(cellData));
+                        }
+                        cell.style = "text-align:center";
+                        row.appendChild(cell);
+                    });
+
+                    ownBoardBody.appendChild(row);
+                });
+
+                ownBoard.appendChild(ownBoardBody);
+                ownBoard.border = "3";
+
+                // inserts column letter labels at bottom
+                letterLabelRow = ownBoard.insertRow(ownBoard.rows.length);
+                for (i = 10; i > 0; i--) {
+                    let letterLabel = letterLabelRow.insertCell(0);
+                    letterLabel.innerHTML = String.fromCharCode(i+64);
+                    letterLabel.style = "text-align:center; font-weight: bold";
+                    letterLabel.className = "labelcell";
+                } 
+
+                // inserts row number labels on right side
+                for (i = 0; i < 11; i++) {
+                    let currRow;
+                    let numLabel;
+                    if(i != 10){
+                        currRow = ownBoard.rows[i];
+                        numLabel = currRow.insertCell(currRow.cells.length);
+                        numLabel.innerHTML = i + 1;
+                        numLabel.style = "text-align:center; font-weight: bold";
+                        numLabel.className = "labelcell";
+                    }
+                    else{
+                        currRow = ownBoard.rows[i];
+                        numLabel = currRow.insertCell(currRow.cells.length);
+                        numLabel.innerHTML = String.fromCharCode(160);
+                        numLabel.style = "text-align:center; font-weight: bold";
+                        numLabel.className = "labelcell";
+                    }
+                }
+
+                document.getElementById("gameDiv").appendChild(ownBoard);
+            }
+
+            else{
+                p2TurnDone = false;
+
+                // indicates whose turn it is
+                let p2TurnMsg = document.createElement("h2");
+                let p2TurnMsgText = document.createTextNode("Player 2's Turn:");
+                p2TurnMsg.appendChild(p2TurnMsgText);
+                p2TurnMsg.id = "p2TurnMsg";
+                document.getElementById("gameDiv").appendChild(p2TurnMsg);
+
+                // load enemy board
+                let enemBoardMsg = document.createElement("p");
+                let enemBoardMsgText = document.createTextNode("Opponent's Board: " + p1Name);
+                enemBoardMsg.appendChild(enemBoardMsgText);
+                enemBoardMsg.id = "enemBoardMsg";
+                document.getElementById("gameDiv").appendChild(enemBoardMsg);
+
+                var enemBoard = document.createElement('table');
+                var enemBoardBody = document.createElement('tbody');
+
+                p1Grid.forEach(function(rowData) {
+                    var row = document.createElement('tr');
+
+                    rowData.forEach(function(cellData) {
+                        var cell = document.createElement('td');
+                        // replaces "-" (indicating a blank coordinate)
+                        // with &nbsp; for evenly spaced blank cells
+                        if(cellData == "-"){
+                            cell.appendChild(document.createTextNode(String.fromCharCode(160)));
+                            cell.className = "normcell";
+                        }
+                        // indicates a miss with an empty white cell
+                        else if(cellData == "M"){
+                            cell.appendChild(document.createTextNode(String.fromCharCode(160)));
+                            cell.className = "misscell";
+                        }
+                        // indicates a hit with a blank red cell
+                        else if(cellData.substring(1) == "h"){
+                            cell.appendChild(document.createTextNode(String.fromCharCode(160)));
+                            cell.className = "hitcell";
+                        }
+                        // shows normal untouched ship cell
+                        else{
+                            cell.appendChild(document.createTextNode(String.fromCharCode(160)));
+                            cell.className = "normcell";
+                        }
+                        cell.style = "text-align:center";
+                        // adds an onclick function for every enemy board cell
+                        // function is defined within the assignment to allow 
+                        // full use of the cell object
+                        cell.onclick = function() {
+
+                            // gets row and column clicked from cell
+                            let rIndex = parseInt(cell.parentElement.rowIndex);
+                            let cIndex = parseInt(cell.cellIndex);
+                            //console.log("Row: " + rIndex + " Cell: " + cIndex);
+                            // checks if it's a hit
+                            if(p1Grid[rIndex][cIndex] != "-" && p1Grid[rIndex][cIndex] != "M"  && p1Grid[rIndex][cIndex].substring(1) != "h"){
+                                cell.style.backgroundColor = 'rgb(178,34,34)';
+                                // indicates in the matrix the cell has been hit
+                                p1Grid[rIndex][cIndex] = p1Grid[rIndex][cIndex].concat("h");
+                                // decrements enemy player score
+                                p1Score = p1Score - 2;
+                                // checks type of ship hit and decrements its hp
+                                if(p1Grid[rIndex][cIndex].substring(0, 1) == "A"){
+                                    p1Ahp = p1Ahp - 1;
+                                }
+                                else if(p1Grid[rIndex][cIndex].substring(0, 1) == "B"){
+                                    p1Bhp = p1Bhp - 1;
+                                }
+                                else{
+                                    p1Shp = p1Shp - 1;
+                                }
+
+                                // then checks if any ships have been totally destoyed
+                                // and displays a message if any have
+                                if(p1Ahp == 0){
+                                    alert("You've destroyed their Aircraft!");
+                                    // sets to -1 to indicate it's already been destroyed
+                                    p1Ahp = -1;
+                                }
+                                else if(p1Bhp == 0){
+                                    alert("You've destroyed their Battleship!");
+                                    // sets to -1 to indicate it's already been destroyed
+                                    p1Bhp = -1;
+                                }
+                                else if(p1Shp == 0){
+                                    alert("You've destroyed their Submarine!");
+                                    // sets to -1 to indicate it's already been destroyed
+                                    p1Shp = -1;
+                                }
+                                // if no ships have been destroyed, show just a hit message
+                                else{
+                                    alert("It's a hit!");
+                                }
+                            }
+                            else if(p1Grid[rIndex][cIndex].substring(1) == "h"){
+                                alert("You've already hit this spot.");
+                            }
+                            else if(p1Grid[rIndex][cIndex] == "M"){
+                                alert("You've already tried this spot and it was a miss.");
+                            }
+                            else{
+                                // indicates a miss
+                                cell.style.backgroundColor = 'rgb(255,250,250)';
+                                p1Grid[rIndex][cIndex] = "M";
+
+                                // display a message telling the player they missed
+                                alert("Sorry, you missed.");
+                            }
+                            moveMade = true;
+                            p2TurnDone = true;
+                        };
+                        row.appendChild(cell);
+                    });
+
+                    enemBoardBody.appendChild(row);
+                });
+
+                enemBoard.id = "enemBoard";
+                enemBoard.appendChild(enemBoardBody);
+                enemBoard.border = "3";
+
+                // inserts column letter labels at bottom
+                letterLabelRow = enemBoard.insertRow(enemBoard.rows.length);
+                for (i = 10; i > 0; i--) {
+                    let letterLabel = letterLabelRow.insertCell(0);
+                    letterLabel.innerHTML = String.fromCharCode(i+64);
+                    letterLabel.style = "text-align:center; font-weight: bold";
+                    letterLabel.className = "labelcell";
+                } 
+
+                // inserts row number labels on right side
+                for (i = 0; i < 11; i++) {
+                    let currRow;
+                    let numLabel;
+                    if(i != 10){
+                        currRow = enemBoard.rows[i];
+                        numLabel = currRow.insertCell(currRow.cells.length);
+                        numLabel.innerHTML = i + 1;
+                        numLabel.style = "text-align:center; font-weight: bold";
+                        numLabel.className = "labelcell";
+                    }
+                    else{
+                        currRow = enemBoard.rows[i];
+                        numLabel = currRow.insertCell(currRow.cells.length);
+                        numLabel.innerHTML = String.fromCharCode(160);
+                        numLabel.style = "text-align:center; font-weight: bold";
+                        numLabel.className = "labelcell";
+                    }
+                }
+
+                document.getElementById("gameDiv").appendChild(enemBoard);
+
+                // load friendly board
+                let ownBoardMsg = document.createElement("p");
+                let ownBoardMsgText = document.createTextNode("Your Board: " + p2Name);
+                ownBoardMsg.appendChild(ownBoardMsgText);
+                ownBoardMsg.id = "ownBoardMsg";
+                document.getElementById("gameDiv").appendChild(ownBoardMsg);
+
+                var ownBoard = document.createElement('table');
+                var ownBoardBody = document.createElement('tbody');
+
+                // fills table with matrix data for friendly and enemy boards
+                p2Grid.forEach(function(rowData) {
+                    var row = document.createElement('tr');
+
+                    rowData.forEach(function(cellData) {
+                        var cell = document.createElement('td');
+                        // replaces "-" (indicating a blank coordinate)
+                        // with &nbsp; for evenly spaced blank cells
+                        if(cellData == "-"){
+                            cell.appendChild(document.createTextNode(String.fromCharCode(160)));
+                            cell.className = "normcell";
+                        }
+                        // indicates a miss with an empty white cell
+                        else if(cellData == "M"){
+                            cell.appendChild(document.createTextNode(String.fromCharCode(160)));
+                            cell.className = "misscell";
+                        }
+                        // indicates a hit with a red cell with the ship letter
+                        else if(cellData.substring(1) == "h"){
+                            cell.appendChild(document.createTextNode(cellData.substring(0, 1)));
+                            cell.className = "hitcell";
+                        }
+                        // shows normal untouched ship cell
+                        else{
+                            cell.appendChild(document.createTextNode(cellData));
+                            cell.className = "normcell";
+                        }
+                        cell.style = "text-align:center";
+                        row.appendChild(cell);
+                    });
+
+                    ownBoardBody.appendChild(row);
+                });
+
+                ownBoard.appendChild(ownBoardBody);
+                ownBoard.border = "3";
+
+                // inserts column letter labels at bottom
+                letterLabelRow = ownBoard.insertRow(ownBoard.rows.length);
+                for (i = 10; i > 0; i--) {
+                    let letterLabel = letterLabelRow.insertCell(0);
+                    letterLabel.innerHTML = String.fromCharCode(i+64);
+                    letterLabel.style = "text-align:center; font-weight: bold";
+                    letterLabel.className = "labelcell";
+                } 
+
+                // inserts row number labels on right side
+                for (i = 0; i < 11; i++) {
+                    let currRow;
+                    let numLabel;
+                    if(i != 10){
+                        currRow = ownBoard.rows[i];
+                        numLabel = currRow.insertCell(currRow.cells.length);
+                        numLabel.innerHTML = i + 1;
+                        numLabel.style = "text-align:center; font-weight: bold";
+                        numLabel.className = "labelcell";
+                    }
+                    else{
+                        currRow = ownBoard.rows[i];
+                        numLabel = currRow.insertCell(currRow.cells.length);
+                        numLabel.innerHTML = String.fromCharCode(160);
+                        numLabel.style = "text-align:center; font-weight: bold";
+                        numLabel.className = "labelcell";
+                    }
+                }
+
+                document.getElementById("gameDiv").appendChild(ownBoard);
+            }
+
+            // wait for onclick call from table cell to continue
+            await waitUntil(() => moveMade);
+        }
+
+        // doesn't return to main function until condition is met
+        const waitUntil = (condition) => {
+            return new Promise((resolve) => {
+                let interval = setInterval(() => {
+                    if (!condition()) {
+                        return
+                    }
+                    clearInterval(interval)
+                    resolve()
+                }, 100)
+            })
+        }
+
+        
+        function endGame(){
+            // clears screen of any elements
+            let container = document.querySelector('#gameDiv');
+            while (container.firstChild) {
+                container.removeChild(container.firstChild);
+            }
+            
+            // creates leaderboard with 10 spots
+            let leaderboardMsg = document.createElement("h2");
+            let leaderboardMsgText = document.createTextNode("Leaderboard:");
+            leaderboardMsg.appendChild(leaderboardMsgText);
+            leaderboardMsg.id = "leaderboardMsg";
+            document.getElementById("gameDiv").appendChild(leaderboardMsg);
+
+
+            let leaderboard = document.createElement('table');
+            let leaderboardBody = document.createElement('tbody');
+            let headerRow = document.createElement('tr');
+            let header1 = document.createElement('th');
+            let header2 = document.createElement('th');
+            header1.appendChild(document.createTextNode("Name"));
+            header2.appendChild(document.createTextNode("Score"));
+            headerRow.appendChild(header1);
+            headerRow.appendChild(header2);
+            leaderboardBody.appendChild(headerRow);
+
+            for(i = 1; i <= 10; i++){
+                    let row = document.createElement('tr');
+                    let cell1 = document.createElement('td');
+                    let cell2 = document.createElement('td');
+                    cell1.appendChild(document.createTextNode(String.fromCharCode(160)));
+                    cell2.appendChild(document.createTextNode(String.fromCharCode(160)));
+                    row.appendChild(cell1);
+                    row.appendChild(cell2);
+                    leaderboardBody.appendChild(row);
+            }
+            leaderboard.appendChild(leaderboardBody);
+            leaderboard.border = "3";
+            leaderboard.id = "leaderboard";
+            document.getElementById("gameDiv").appendChild(leaderboard);
+
+            let winner = [winnerName, winnerScore];
+            // first, checks if any high scores can be added
+            // checks if any of the 10 scores saved aren't 24 (max score)
+            let canAddScore= false;
+            for(i = 1; i <= 10; i++){
+                if (localStorage.getItem(`s${i}`) !== null) {
+                    if (parseInt(JSON.parse(localStorage.getItem(`s${i}`))[1]) < 24) {
+                        canAddScore = true;
+                        break;
+                    }                
+                }
+                else{
+                    canAddScore = true;
+                    break;
+                }
+            }
+            // used to make sure its not adding any unusable data
+            if(winnerName == "" || winnerName === null || winnerScore == "" || winnerScore === null){
+                canAddScore = false;
+            }
+            //console.log(canAddScore);
+            if(canAddScore){
+                // loops through top 10 scores saved
+                for(i = 1; i <= 10; i++){
+                    //console.log("checking index: " + i);
+                    // checks if space in leaderboard is filled
+                    if (localStorage.getItem(`s${i}`) !== null) {
+                        // compare against it if it is to see if the new winner trumps the one in this spot
+                        //console.log("comparing " + JSON.parse(localStorage.getItem(`s${i}`))[1] + " against winner score " + winner[1]);
+                        if(parseInt(JSON.parse(localStorage.getItem(`s${i}`))[1]) < parseInt(winner[1])){
+                            // if the new winner deserves this spot, start from the bottom of
+                            // the leaderboard and move up, copying every winner above it
+                            // down a spot to make room for the new winner
+                            for(j = 10; j >= i; j--){
+                                // first checks if we have reached the index to insert the winnner at
+                                // and inserts the winner, instead of the entry above it
+                                if(i == j){
+                                    //console.log("inserting new score at index " + i);
+                                    localStorage.setItem(`s${j}`, JSON.stringify(winner));
+                                    break;
+                                }
+
+                                // checks if spot before the current index is not empty
+                                // if so, copy that index's value to the current index
+                                else if (localStorage.getItem(`s${j-1}`) !== null) {
+                                    localStorage.setItem(`s${j}`, localStorage.getItem(`s${j-1}`));
+                                }
+                                // if this is not the case, then the previous and current
+                                // spots must be empty, so just skip these
+
+                            }
+                            break;
+
+                        }
+                        // otherwise, loop into the next space to see if it could go there
+                        // if it finishes the loop and can't beat any of the previous winners,
+                        // then it won't be added to the leaderboard
+                        //console.log("can't insert at index " + i);
+
+                    }
+                    // otherwise, position in local storage is empty so fill it
+                    else{
+                        localStorage.setItem(`s${i}`, JSON.stringify(winner));
+                        break;
+                    }
+
+                }
+            }
+            else{
+                // no more scores can be added
+            }
+
+            for(i = 1; i <= 10; i++){
+                if (localStorage.getItem(`s${i}`) !== null) {
+                    leaderboard.rows[i].cells[0].innerHTML = JSON.parse(localStorage.getItem(`s${i}`))[0];
+                    leaderboard.rows[i].cells[1].innerHTML = JSON.parse(localStorage.getItem(`s${i}`))[1];
+                }
+
+            }
+
+        }
+    </script>
+</body>
+</html>

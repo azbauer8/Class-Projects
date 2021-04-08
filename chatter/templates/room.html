@@ -1,0 +1,26 @@
+{% extends "main.html" %}
+{% block body %}
+
+	<!-- Imports ajax js script -->
+	<script type="text/javascript" src="{{ url_for('static', filename='script.js') }}"></script>
+	
+	<!-- Button to leave room -->
+	<a href="{{ url_for('room_list', left_room=True) }}" id="leaveRoom">Leave Chat Room</a>
+
+	<h1 class="roomTitle">Room: <bdi class="roomName">{{ chatroom.room_name }}</bdi></h1>
+
+	<!-- Shows all messages for a given room and a form to add a mesage -->
+	<h4>Messages:</h4>
+	<ul id="message_list">
+	{% for message in chatroom.messages %}
+			<li class="roomItem"><bdi class="msgSender">{{ message.username }} &raquo; </bdi>{{ message.message_text }}</li>
+	{% endfor %}
+	</ul> 
+
+	<h4> Send a message: </h4>
+	<input type="textarea" id="new_message" name="new_message" placeholder="Enter your message here" maxlength="1000" size="65"/><br>
+	<input type="button" id="submit_message" value="Post message" />
+
+
+
+{% endblock %}

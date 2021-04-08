@@ -1,0 +1,27 @@
+{% extends "main.html" %}
+{% block body %}
+
+	<!-- Shows chatrooms to join and a form to create a room -->
+	<h3>Available rooms:</h3>
+	<ul class="rooms">
+	<!-- Lists each chatroom passed in through render_template with a join and delete button (if owner) -->
+	{% for room in chatrooms %}
+		<li class="roomItem">
+			{{ room.room_name }}<a href="{{ url_for('room', room_id=room.room_id) }}" class="joinRoom">Join</a>
+			{% if username == room.username %}
+			<a href="{{ url_for('delete_room', room_id=room.room_id) }}" class="delRoom">Delete</a>
+			{% endif %}
+		</li>
+	{% else %}
+		<li class="flashError">No chat rooms available</li>
+	{% endfor %}
+	</ul> 
+
+	<!-- Form to create a room - redirects to create_room function that gets the input text -->
+	<h3>Create a new room:</h3>
+	<form action="{{ url_for('create_room') }}" method="post">
+		<input type="text" name="roomname" placeholder="Enter a room name" maxlength="40" size="65"><br>
+		<input class="button" type="submit" value="Create room">
+	</form>
+
+{% endblock %}

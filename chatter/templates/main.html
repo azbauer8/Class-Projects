@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<title>Chatter</title>
+<html lang="en">
+<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+<link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+<div class="page">
+
+	<!-- Header for all pages -->
+	
+	<!-- Shows login/signup if not logged in, else shows log out -->
+	<div class="metanav">
+		<img src="static/parrot.png" alt="Chatter Logo" id="logoImg">
+		<h1 id="titleText">Chatter</h1>
+
+		{% if session['logged_in'] %}
+			<h2 id="welcomeUser">Signed in as: {{ session['username'] }}</h2><br><br>
+		{% endif %}
+
+		{% if not session['logged_in'] %}
+			<br><a href="{{ url_for('login') }}" id="loginBtn">Log in or sign up</a>
+		{% else %}
+			<br><a href="{{ url_for('logout') }}" id="logoutBtn">Log out</a>
+		{% endif %}
+
+		<!-- Shows any flash messages -->
+		{% with messages = get_flashed_messages(with_categories=true) %}
+			{% if messages %}
+				{% if session['logged_in'] %}
+					<br><br>
+				{% endif %}
+				{% for category, message in messages %}
+					<div class="{{ category }}">{{ message }}</div>
+				{% endfor %}
+			{% endif %}
+		{% endwith %}
+	</div>
+
+
+	
+{% block body %}
+{% endblock %}
+</div>
